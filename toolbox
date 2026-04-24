@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Toolbox launcher
+# Usage: ./toolbox <category> <command> [args...]
+
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+usage() {
+  cat <<'EOF'
+Usage:
+  toolbox <category> <command> [args...]
+
+Examples:
+  toolbox system summary
+  toolbox network check
+  toolbox security audit
+
+Categories and commands:
+  system    summary | updates | service
+  network   check
+  security  audit
+  storage   usage
+  users     audit
+  backup    verify
+  maintenance log-scan
+  inventory export
+EOF
+}
+
+if [ "$#" -lt 2 ]; then
+  usage
+  exit 1
+fi
+
+category="$1"
+command="$2"
+shift 2
+
+script=""
+case "$category" in
+  system)
+    case "$command" in
+      summary|host-summary) script="$script_dir/linux/system/check-host-summary.sh" ;;
+      updates|update-status|package-status) script="$script_dir/linux/system/check-package-update-status.sh" ;;
+      service|service-check) script="$script_dir/linux/system/check-service-check.sh" ;;
+      *) ;;
+    esac
+    ;;
+  network)
+    case "$command" in
+      check|connectivity) script="$script_dir/linux/network/check-network-connectivity.sh" ;;
+      *) ;;
+    esac
+    ;;
+  security)
+    case "$command" in
+      audit|basics) script="$script_dir/linux/security/check-security-basics.sh" ;;
+      *) ;;
+    esac
+    ;;
+  storage)
+    case "$command" in
+      usage|disk-usage) script="$script_dir/linux/storage/check-disk-usage-report.sh" ;;
+      *) ;;
+    esac
+    ;;
+  users)
+    case "$command" in
+      audit|group-audit) script="$script_dir/linux/users/check-user-group-audit.sh" ;;
+      *) ;;
+    esac
+    ;;
+  backup)
+    case "$command" in
+      verify|verification) script="$script_dir/linux/backup/check-backup-verification.sh" ;;
+      *) ;;
+    esac
+    ;;
+  maintenance)
+    case "$command" in
+      log-scan|logs|error-scan) script="$script_dir/linux/maintenance/check-log-error-scan.sh" ;;
+      *) ;;
+    esac
+    ;;
+  monitoring)
+    case "$command" in
+      health|system-health) script="$script_dir/linux/monitoring/check-system-health.sh" ;;
+      *) ;;
+    esac
+    ;;
+  inventory)
+    case "$command" in
+      export) script="$script_dir/linux/inventory/check-inventory-export.sh" ;;
+      *) ;;
+    esac
+    ;;
+  help|-h|--help)
+    usage
+    exit 0
+    ;;
+  *) ;;
+esac
+
+if [ -z "$script" ]; then
+  echo "Unknown category/command: $category $command"
+  usage
+  exit 1
+fi
+
+if [ ! -f "$script" ]; then
+  echo "Script not found: $script"
+  exit 1
+fi
+
+bash "$script" "$@"
